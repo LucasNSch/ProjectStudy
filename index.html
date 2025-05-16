@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow - Seu Cronograma de Estudos Personalizado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+        }
+        
+        .study-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .time-slot {
+            transition: all 0.2s ease;
+        }
+        
+        .time-slot:hover {
+            background-color: #e9d5ff;
+        }
+        
+        .time-slot.selected {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        
+        #schedulePreview {
+            scrollbar-width: thin;
+            scrollbar-color: #c4b5fd #f5f3ff;
+        }
+        
+        #schedulePreview::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #schedulePreview::-webkit-scrollbar-track {
+            background: #f5f3ff;
+        }
+        
+        #schedulePreview::-webkit-scrollbar-thumb {
+            background-color: #c4b5fd;
+            border-radius: 20px;
+        }
+        
+        .animate-bounce {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(-5%);
+                animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+            }
+            50% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+            }
+        }
+        
+        .tip-card {
+            border-left: 4px solid #8b5cf6;
+            transition: all 0.3s ease;
+        }
+        
+        .tip-card:hover {
+            transform: translateX(5px);
+            background-color: #f3e8ff;
+        }
+        
+        .priority-high {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        
+        .priority-medium {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .priority-low {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        /* Custom styles for PDF generation */
+        .pdf-container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .pdf-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #8b5cf6;
+        }
+        
+        .pdf-section {
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+        
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        
+        .pdf-table th, .pdf-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .pdf-table th {
+            background-color: #f3e8ff;
+        }
+        
+        .pdf-tip-box {
+            background-color: #f3e8ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .pdf-motivational {
+            background-color: #fef3c7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #d97706;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header/Navigation -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-book-open text-2xl mr-2"></i>
+                    <h1 class="text-2xl font-bold">StudyFlow</h1>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#features" class="hover:text-purple-200 transition">Recursos</a>
+                    <a href="#how-it-works" class="hover:text-purple-200 transition">Como Funciona</a>
+                    <a href="#testimonials" class="hover:text-purple-200 transition">Depoimentos</a>
+                </nav>
+                <button class="md:hidden text-xl">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-16">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0">
+                <h1 class="text-4xl md:text-5xl font-bold leading-tight mb-4">Crie seu cronograma de estudos perfeito</h1>
+                <p class="text-xl mb-8 text-purple-100">Personalize seu plano de estudos de acordo com sua rotina, objetivos e preferências.</p>
+                <button onclick="scrollToForm()" class="bg-white text-purple-600 font-bold px-8 py-3 rounded-full hover:bg-purple-100 transition duration-300 shadow-lg animate-bounce">
+                    Criar Meu Cronograma
+                </button>
+            </div>
+            <div class="md:w-1/2 flex justify-center">
+                <img src="https://img.freepik.com/free-vector/student-with-laptop-studying-online-course_74855-5293.jpg?w=1380&t=st=1690834567~exp=1690835167~hmac=6c7c1c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0" alt="Estudante" class="w-full max-w-md rounded-lg shadow-xl">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-16">Recursos Exclusivos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-purple-50 p-6 rounded-xl study-card transition duration-300">
+                    <div class="text-purple-600 mb-4">
+                        <i class="fas fa-clock text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">Horários Flexíveis</h3>
+                    <p class="text-gray-600">Escolha os melhores horários para estudar de acordo com sua rotina e produtividade.</p>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-xl study-card transition duration-300">
+                    <div class="text-purple-600 mb-4">
+                        <i class="fas fa-book text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">Matérias Personalizadas</h3>
+                    <p class="text-gray-600">Adicione qualquer tópico que deseja estudar, desde programação até filosofia.</p>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-xl study-card transition duration-300">
+                    <div class="text-purple-600 mb-4">
+                        <i class="fas fa-file-pdf text-4xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">Exportar para PDF</h3>
+                    <p class="text-gray-600">Baixe seu cronograma em PDF para imprimir ou salvar no seu dispositivo.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-16">Como Funciona</h2>
+            <div class="flex flex-col md:flex-row items-center mb-16">
+                <div class="md:w-1/2 mb-8 md:mb-0 md:pr-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">1. Informações Básicas</h3>
+                    <p class="text-gray-600 mb-4">Comece nos dizendo seu nome e quantas horas por dia você pode dedicar aos estudos.</p>
+                    <p class="text-gray-600">Essas informações nos ajudam a criar um cronograma realista para você.</p>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://img.freepik.com/free-vector/businessman-looking-his-reflection-mirror_74855-7983.jpg?w=1380&t=st=1690834567~exp=1690835167~hmac=6c7c1c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0" alt="Informações básicas" class="w-full max-w-md rounded-lg">
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row-reverse items-center mb-16">
+                <div class="md:w-1/2 mb-8 md:mb-0 md:pl-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">2. Escolha Seus Horários</h3>
+                    <p class="text-gray-600 mb-4">Selecione os horários do dia em que você está mais disposto e produtivo para estudar.</p>
+                    <p class="text-gray-600">Você pode escolher vários horários ao longo do dia.</p>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://img.freepik.com/free-vector/time-management-concept-illustration_114360-3826.jpg?w=1380&t=st=1690834782~exp=1690835382~hmac=6c7c1c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0" alt="Escolha de horários" class="w-full max-w-md rounded-lg">
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-8 md:mb-0 md:pr-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">3. Adicione Seus Tópicos</h3>
+                    <p class="text-gray-600 mb-4">Liste todos os assuntos que deseja estudar e defina sua prioridade para cada um.</p>
+                    <p class="text-gray-600">Receba dicas personalizadas para cada tópico que você adicionar.</p>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="https://img.freepik.com/free-vector/hand-drawn-stack-books-illustration_23-2149341898.jpg?w=1380&t=st=1690834567~exp=1690835167~hmac=6c7c1c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0" alt="Adicionar tópicos" class="w-full max-w-md rounded-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Study Planner Form -->
+    <section id="planner-form" class="py-16 bg-white">
+        <div class="container mx-auto px-6 max-w-4xl">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Crie Seu Cronograma</h2>
+            
+            <!-- Step 1: Basic Info -->
+            <div id="step1" class="bg-purple-50 p-6 rounded-xl mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">1</span>
+                    Informações Básicas
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="userName" class="block text-gray-700 mb-2">Seu Nome</label>
+                        <input type="text" id="userName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label for="studyDays" class="block text-gray-700 mb-2">Dias de Estudo por Semana</label>
+                        <select id="studyDays" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="5">5 dias</option>
+                            <option value="6">6 dias</option>
+                            <option value="7">7 dias</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="dailyHours" class="block text-gray-700 mb-2">Horas por Dia</label>
+                        <select id="dailyHours" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="1">1 hora</option>
+                            <option value="2">2 horas</option>
+                            <option value="3">3 horas</option>
+                            <option value="4">4 horas</option>
+                            <option value="5">5 horas</option>
+                            <option value="6">6+ horas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="startDate" class="block text-gray-700 mb-2">Data de Início</label>
+                        <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button onclick="nextStep(1, 2)" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Próximo</button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Time Selection -->
+            <div id="step2" class="bg-purple-50 p-6 rounded-xl mb-8 hidden">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">2</span>
+                    Selecione Seus Horários de Estudo
+                </h3>
+                <p class="text-gray-600 mb-6">Clique nos horários que você prefere estudar. Você pode selecionar vários horários.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <h4 class="font-bold text-gray-700 mb-2">Manhã</h4>
+                        <div class="space-y-2">
+                            <div id="time-6" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">06:00 - 07:00</div>
+                            <div id="time-7" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">07:00 - 08:00</div>
+                            <div id="time-8" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">08:00 - 09:00</div>
+                            <div id="time-9" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">09:00 - 10:00</div>
+                            <div id="time-10" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">10:00 - 11:00</div>
+                            <div id="time-11" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">11:00 - 12:00</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-700 mb-2">Tarde</h4>
+                        <div class="space-y-2">
+                            <div id="time-12" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">12:00 - 13:00</div>
+                            <div id="time-13" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">13:00 - 14:00</div>
+                            <div id="time-14" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">14:00 - 15:00</div>
+                            <div id="time-15" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">15:00 - 16:00</div>
+                            <div id="time-16" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">16:00 - 17:00</div>
+                            <div id="time-17" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">17:00 - 18:00</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-700 mb-2">Noite</h4>
+                        <div class="space-y-2">
+                            <div id="time-18" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">18:00 - 19:00</div>
+                            <div id="time-19" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">19:00 - 20:00</div>
+                            <div id="time-20" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">20:00 - 21:00</div>
+                            <div id="time-21" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">21:00 - 22:00</div>
+                            <div id="time-22" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">22:00 - 23:00</div>
+                            <div id="time-23" class="time-slot cursor-pointer p-2 rounded text-center border border-gray-300">23:00 - 00:00</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-between">
+                    <button onclick="prevStep(2, 1)" class="text-purple-600 px-6 py-2 rounded-lg border border-purple-600 hover:bg-purple-50 transition">Voltar</button>
+                    <button onclick="nextStep(2, 3)" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Próximo</button>
+                </div>
+            </div>
+            
+            <!-- Step 3: Subjects -->
+            <div id="step3" class="bg-purple-50 p-6 rounded-xl mb-8 hidden">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">3</span>
+                    Adicione Seus Tópicos de Estudo
+                </h3>
+                <p class="text-gray-600 mb-6">Adicione os tópicos que você deseja estudar e defina sua prioridade.</p>
+                
+                <div class="mb-6">
+                    <div class="flex mb-4">
+                        <input type="text" id="subjectInput" placeholder="Ex: JavaScript, Filosofia, Marketing Digital" class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <select id="priorityInput" class="px-4 py-2 border-t border-b border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="high">Alta</option>
+                            <option value="medium" selected>Média</option>
+                            <option value="low">Baixa</option>
+                        </select>
+                        <button onclick="addSubject()" class="bg-purple-600 text-white px-4 py-2 rounded-r-lg hover:bg-purple-700 transition">Adicionar</button>
+                    </div>
+                    
+                    <div id="subjectsList" class="space-y-2">
+                        <!-- Subjects will be added here -->
+                    </div>
+                </div>
+                
+                <div id="studyTips" class="bg-purple-100 p-4 rounded-lg mb-6 hidden">
+                    <h4 class="font-bold text-purple-800 mb-2">Dicas de Estudo</h4>
+                    <div id="tipsContent" class="space-y-3">
+                        <!-- Tips will be added here -->
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-between">
+                    <button onclick="prevStep(3, 2)" class="text-purple-600 px-6 py-2 rounded-lg border border-purple-600 hover:bg-purple-50 transition">Voltar</button>
+                    <button onclick="generateSchedule()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">Gerar Cronograma</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Schedule Preview -->
+    <section id="schedulePreviewSection" class="py-16 bg-gray-50 hidden">
+        <div class="container mx-auto px-6 max-w-5xl">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Seu Cronograma de Estudos</h2>
+                    <button onclick="downloadPDF()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition flex items-center">
+                        <i class="fas fa-download mr-2"></i> Baixar PDF
+                    </button>
+                </div>
+                
+                <div id="schedulePreview" class="border border-gray-200 rounded-lg p-4 max-h-screen overflow-y-auto">
+                    <!-- Schedule will be generated here -->
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button onclick="resetForm()" class="text-purple-600 px-6 py-2 rounded-lg border border-purple-600 hover:bg-purple-50 transition">Criar Novo Cronograma</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="py-16 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-16">O Que Dizem Nossos Usuários</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-gray-50 p-6 rounded-xl">
+                    <div class="flex items-center mb-4">
+                        <div class="text-yellow-400 mr-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">"O StudyFlow revolucionou minha rotina de estudos. Finalmente consegui organizar meu tempo para aprender programação enquanto trabalho."</p>
+                    <div class="flex items-center">
+                        <div class="bg-purple-200 w-10 h-10 rounded-full flex items-center justify-center text-purple-600 font-bold mr-3">L</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Lucas M.</h4>
+                            <p class="text-sm text-gray-500">Estudante de Ciência da Computação</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl">
+                    <div class="flex items-center mb-4">
+                        <div class="text-yellow-400 mr-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">"Como autodidata, sempre tive dificuldade em me organizar. Agora consigo dividir meu tempo entre filosofia, história e idiomas de forma equilibrada."</p>
+                    <div class="flex items-center">
+                        <div class="bg-purple-200 w-10 h-10 rounded-full flex items-center justify-center text-purple-600 font-bold mr-3">A</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Ana C.</h4>
+                            <p class="text-sm text-gray-500">Autodidata</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl">
+                    <div class="flex items-center mb-4">
+                        <div class="text-yellow-400 mr-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">"Estou me preparando para uma certificação e o cronograma gerado me ajudou a encaixar os estudos na minha rotina corrida. As dicas são muito úteis!"</p>
+                    <div class="flex items-center">
+                        <div class="bg-purple-200 w-10 h-10 rounded-full flex items-center justify-center text-purple-600 font-bold mr-3">R</div>
+                        <div>
+                            <h4 class="font-bold text-gray-800">Roberto S.</h4>
+                            <p class="text-sm text-gray-500">Profissional de TI</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-8">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fas fa-book-open text-2xl mr-2"></i>
+                    <h2 class="text-xl font-bold">StudyFlow</h2>
+                </div>
+                <div class="flex space-x-6 mb-4 md:mb-0">
+                    <a href="https://facebook.com" target="_blank" class="hover:text-purple-200 transition"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://twitter.com" target="_blank" class="hover:text-purple-200 transition"><i class="fab fa-twitter"></i></a>
+                    <a href="https://instagram.com" target="_blank" class="hover:text-purple-200 transition"><i class="fab fa-instagram"></i></a>
+                    <a href="https://linkedin.com" target="_blank" class="hover:text-purple-200 transition"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+                <div class="text-sm text-purple-100">
+                    &copy; 2023 StudyFlow. Todos os direitos reservados.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Global variables
+        let selectedTimes = [];
+        let subjects = [];
+        const studyTips = {
+            "programação": [
+                "Dedique tempo para prática diária. Comece com conceitos básicos antes de frameworks.",
+                "Use plataformas como freeCodeCamp e LeetCode para exercícios práticos.",
+                "Participe de projetos open-source para ganhar experiência real."
+            ],
+            "matemática": [
+                "Resolva problemas diariamente para fixar os conceitos.",
+                "Anote fórmulas em um caderno separado para consulta rápida.",
+                "Assista a vídeos explicativos quando tiver dificuldades com algum tópico."
+            ],
+            "história": [
+                "Crie linhas do tempo para visualizar melhor a sequência de eventos.",
+                "Relacione fatos históricos com acontecimentos atuais para melhor memorização.",
+                "Visite museus virtuais para complementar seus estudos."
+            ],
+            "filosofia": [
+                "Leia os textos originais e depois análises de especialistas.",
+                "Participe de grupos de discussão para debater ideias filosóficas.",
+                "Relacione as teorias com situações do cotidiano."
+            ],
+            "ciência": [
+                "Siga o método científico em seus estudos e experimentos.",
+                "Faça experimentos práticos sempre que possível para melhor compreensão.",
+                "Acompanhe canais científicos no YouTube para visualizar conceitos complexos."
+            ],
+            "idiomas": [
+                "Exposição diária é essencial para aprendizado de idiomas.",
+                "Use apps como Duolingo para prática constante.",
+                "Assista a filmes e séries sem legenda para treinar o ouvido."
+            ],
+            "marketing": [
+                "Acompanhe cases de sucesso para entender estratégias eficazes.",
+                "Crie projetos práticos para aplicar o que aprender.",
+                "Analise campanhas publicitárias para identificar técnicas usadas."
+            ],
+            "design": [
+                "Pratique diariamente para desenvolver suas habilidades.",
+                "Estude teoria das cores e princípios de design antes de ferramentas específica.",
+                "Crie um portfólio com seus trabalhos para acompanhar sua evolução."
+            ],
+            "negócios": [
+                "Leia biografias de empreendedores para entender suas estratégias.",
+                "Analise modelos de negócios de empresas reais.",
+                "Participe de eventos de networking para trocar experiências."
+            ],
+            "literatura": [
+                "Leia ativamente, fazendo anotações sobre personagens e temas.",
+                "Participe de clubes do livro para discussões enriquecedoras.",
+                "Escreva resenhas para consolidar sua compreensão das obras."
+            ],
+            "geografia": [
+                "Use mapas interativos para estudar características geográficas.",
+                "Relacione aspectos físicos com atividades econômicas das regiões.",
+                "Acompanhe notícias sobre mudanças climáticas e seus impactos."
+            ],
+            "biologia": [
+                "Faça esquemas e desenhos para memorizar estruturas biológicas.",
+                "Assista a documentários sobre natureza e vida animal.",
+                "Visite parques e reservas para observação prática."
+            ],
+            "arte": [
+                "Visite museus virtuais para conhecer diferentes movimentos artísticos.",
+                "Experimente técnicas diversas para descobrir seu estilo.",
+                "Analise obras famosas para entender composição e técnicas."
+            ],
+            "física": [
+                "Relacione conceitos com fenômenos do dia a dia.",
+                "Resolva problemas práticos para aplicar as fórmulas.",
+                "Assista a demonstrações experimentais para visualizar os princípios."
+            ],
+            "química": [
+                "Faça experimentos simples em casa (com segurança) para observar reações.",
+                "Use modelos moleculares para entender estruturas químicas.",
+                "Relacione conceitos químicos com aplicações industriais."
+            ]
+        };
+        
+        // Navigation between steps
+        function nextStep(current, next) {
+            // Validate step 1
+            if(current === 1) {
+                const name = document.getElementById('userName').value;
+                if(!name) {
+                    alert('Por favor, insira seu nome.');
+                    return;
+                }
+            }
+            
+            // Validate step 2
+            if(current === 2) {
+                if(selectedTimes.length === 0) {
+                    alert('Por favor, selecione pelo menos um horário de estudo.');
+                    return;
+                }
+            }
+            
+            document.getElementById(`step${current}`).classList.add('hidden');
+            document.getElementById(`step${next}`).classList.remove('hidden');
+        }
+        
+        function prevStep(current, prev) {
+            document.getElementById(`step${current}`).classList.add('hidden');
+            document.getElementById(`step${prev}`).classList.remove('hidden');
+        }
+        
+        // Time selection
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.addEventListener('click', function() {
+                const timeId = this.id.split('-')[1];
+                
+                if(this.classList.contains('selected')) {
+                    this.classList.remove('selected');
+                    selectedTimes = selectedTimes.filter(time => time !== timeId);
+                } else {
+                    this.classList.add('selected');
+                    selectedTimes.push(timeId);
+                }
+            });
+        });
+        
+        // Subjects management
+        function addSubject() {
+            const subjectInput = document.getElementById('subjectInput');
+            const priorityInput = document.getElementById('priorityInput');
+            const subject = subjectInput.value.trim();
+            
+            if(!subject) {
+                alert('Por favor, insira um tópico de estudo.');
+                return;
+            }
+            
+            // Check if subject already exists
+            if(subjects.some(s => s.name.toLowerCase() === subject.toLowerCase())) {
+                alert('Este tópico já foi adicionado.');
+                return;
+            }
+            
+            const priority = priorityInput.value;
+            const priorityText = 
+                priority === 'high' ? 'Alta' : 
+                priority === 'medium' ? 'Média' : 'Baixa';
+            
+            const priorityColor = 
+                priority === 'high' ? 'priority-high' : 
+                priority === 'medium' ? 'priority-medium' : 'priority-low';
+            
+            subjects.push({
+                name: subject,
+                priority: priority
+            });
+            
+            const subjectElement = document.createElement('div');
+            subjectElement.className = 'flex justify-between items-center bg-purple-50 p-3 rounded-lg';
+            subjectElement.innerHTML = `
+                <span>${subject}</span>
+                <div class="flex items-center">
+                    <span class="text-xs px-2 py-1 rounded-full ${priorityColor} mr-2">${priorityText}</span>
+                    <button onclick="removeSubject('${subject}')" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('subjectsList').appendChild(subjectElement);
+            subjectInput.value = '';
+            
+            // Show study tips if available
+            showStudyTips(subject);
+        }
+        
+        function removeSubject(subjectName) {
+            subjects = subjects.filter(s => s.name !== subjectName);
+            renderSubjectsList();
+            
+            // Hide tips if no subjects left
+            if(subjects.length === 0) {
+                document.getElementById('studyTips').classList.add('hidden');
+            }
+        }
+        
+        function renderSubjectsList() {
+            const list = document.getElementById('subjectsList');
+            list.innerHTML = '';
+            
+            subjects.forEach(subject => {
+                const priority = subject.priority;
+                const priorityText = 
+                    priority === 'high' ? 'Alta' : 
+                    priority === 'medium' ? 'Média' : 'Baixa';
+                
+                const priorityColor = 
+                    priority === 'high' ? 'priority-high' : 
+                    priority === 'medium' ? 'priority-medium' : 'priority-low';
+                
+                const subjectElement = document.createElement('div');
+                subjectElement.className = 'flex justify-between items-center bg-purple-50 p-3 rounded-lg mb-2';
+                subjectElement.innerHTML = `
+                    <span>${subject.name}</span>
+                    <div class="flex items-center">
+                        <span class="text-xs px-2 py-1 rounded-full ${priorityColor} mr-2">${priorityText}</span>
+                        <button onclick="removeSubject('${subject.name}')" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                list.appendChild(subjectElement);
+            });
+        }
+        
+        function showStudyTips(subject) {
+            const tipsContainer = document.getElementById('studyTips');
+            const tipsContent = document.getElementById('tipsContent');
+            
+            // Find matching tips
+            let tips = [];
+            for(const keyword in studyTips) {
+                if(subject.toLowerCase().includes(keyword)) {
+                    tips = studyTips[keyword];
+                    break;
+                }
+            }
+            
+            if(tips.length > 0) {
+                tipsContent.innerHTML = '';
+                
+                tips.forEach(tip => {
+                    const tipElement = document.createElement('div');
+                    tipElement.className = 'tip-card bg-white p-3 rounded-r-lg mb-2';
+                    tipElement.innerHTML = `
+                        <div class="flex items-start">
+                            <i class="fas fa-lightbulb text-purple-500 mt-1 mr-2"></i>
+                            <p>${tip}</p>
+                        </div>
+                    `;
+                    tipsContent.appendChild(tipElement);
+                });
+                
+                tipsContainer.classList.remove('hidden');
+            } else {
+                tipsContainer.classList.add('hidden');
+            }
+        }
+        
+        // Generate schedule
+        function generateSchedule() {
+            if(subjects.length === 0) {
+                alert('Por favor, adicione pelo menos um tópico de estudo.');
+                return;
+            }
+            
+            const userName = document.getElementById('userName').value;
+            const studyDays = document.getElementById('studyDays').value;
+            const dailyHours = document.getElementById('dailyHours').value;
+            const startDate = document.getElementById('startDate').value;
+            
+            // Sort selected times
+            selectedTimes.sort((a, b) => parseInt(a) - parseInt(b));
+            
+            // Sort subjects by priority (high first)
+            subjects.sort((a, b) => {
+                if(a.priority === 'high' && b.priority !== 'high') return -1;
+                if(a.priority !== 'high' && b.priority === 'high') return 1;
+                if(a.priority === 'medium' && b.priority === 'low') return -1;
+                if(a.priority === 'low' && b.priority === 'medium') return 1;
+                return 0;
+            });
+            
+            // Calculate total study hours per week
+            const totalWeeklyHours = parseInt(studyDays) * parseInt(dailyHours);
+            
+            // Generate schedule HTML
+            let scheduleHTML = `
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-purple-700 mb-2">${userName}, seu cronograma personalizado</h3>
+                    <p class="text-gray-600">Data de início: ${formatDate(startDate)} | Dias por semana: ${studyDays} | Horas por dia: ${dailyHours}</p>
+                    <div class="mt-4 bg-purple-50 p-3 rounded-lg">
+                        <p class="font-medium text-purple-800"><i class="fas fa-chart-pie mr-2"></i> Total de horas de estudo por semana: <span class="font-bold">${totalWeeklyHours}h</span></p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-800 mb-2">Seus Tópicos de Estudo</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+            `;
+            
+            // Count subjects by priority
+            const priorityCounts = {
+                high: subjects.filter(s => s.priority === 'high').length,
+                medium: subjects.filter(s => s.priority === 'medium').length,
+                low: subjects.filter(s => s.priority === 'low').length
+            };
+            
+            subjects.forEach(subject => {
+                const priorityColor = 
+                    subject.priority === 'high' ? 'priority-high' : 
+                    subject.priority === 'medium' ? 'priority-medium' : 'priority-low';
+                
+                scheduleHTML += `
+                    <div class="bg-gray-50 p-2 rounded text-sm">
+                        ${subject.name} <span class="text-xs px-1 py-0.5 rounded-full ${priorityColor}">${
+                            subject.priority === 'high' ? 'Alta' : 
+                            subject.priority === 'medium' ? 'Média' : 'Baixa'
+                        }</span>
+                    </div>
+                `;
+            });
+            
+            scheduleHTML += `
+                    </div>
+                    
+                    <div class="bg-gray-100 p-3 rounded-lg">
+                        <h5 class="font-medium text-gray-700 mb-2">Distribuição por Prioridade</h5>
+                        <div class="grid grid-cols-3 gap-2 text-center text-sm">
+                            <div class="priority-high p-1 rounded">Alta: ${priorityCounts.high}</div>
+                            <div class="priority-medium p-1 rounded">Média: ${priorityCounts.medium}</div>
+                            <div class="priority-low p-1 rounded">Baixa: ${priorityCounts.low}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-gray-800 mb-2">Sua Rotina Semanal</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead>
+                                <tr class="bg-purple-50">
+                                    <th class="py-2 px-4 border-b text-left">Dia</th>
+                                    <th class="py-2 px-4 border-b text-left">Horário</th>
+                                    <th class="py-2 px-4 border-b text-left">Tópico</th>
+                                    <th class="py-2 px-4 border-b text-left">Duração</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+            const totalDays = parseInt(studyDays);
+            let subjectIndex = 0;
+            
+            for(let day = 0; day < totalDays; day++) {
+                const dayName = days[day];
+                let timeIndex = 0;
+                
+                // Distribute study hours across selected times
+                for(let hour = 0; hour < selectedTimes.length; hour++) {
+                    const time = selectedTimes[hour];
+                    const startHour = parseInt(time);
+                    const endHour = startHour + 1;
+                    const timeSlot = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
+                    
+                    const currentSubject = subjects[subjectIndex % subjects.length];
+                    const priorityColor = 
+                        currentSubject.priority === 'high' ? 'priority-high' : 
+                        currentSubject.priority === 'medium' ? 'priority-medium' : 'priority-low';
+                    
+                    scheduleHTML += `
+                        <tr class="${day % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
+                            <td class="py-2 px-4 border-b">${dayName}</td>
+                            <td class="py-2 px-4 border-b">${timeSlot}</td>
+                            <td class="py-2 px-4 border-b">
+                                <span class="${priorityColor} px-2 py-1 rounded-full text-xs">${currentSubject.name}</span>
+                            </td>
+                            <td class="py-2 px-4 border-b">1 hora</td>
+                        </tr>
+                    `;
+                    
+                    subjectIndex++;
+                    timeIndex++;
+                    
+                    // Break if we've allocated all daily hours
+                    if(timeIndex >= dailyHours) break;
+                }
+            }
+            
+            scheduleHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-6 bg-purple-50 p-4 rounded-lg">
+                    <h4 class="font-bold text-purple-800 mb-2">Dicas para seu cronograma</h4>
+                    <ul class="list-disc pl-5 space-y-1 text-purple-700">
+                        <li>Revise o conteúdo estudado no dia seguinte antes de começar novos tópicos.</li>
+                        <li>Faça pausas de 5 minutos a cada 25 minutos de estudo (técnica Pomodoro).</li>
+                        <li>Reserve um dia da semana apenas para revisão (recomendamos o domingo).</li>
+                        <li>Adapte o cronograma conforme sua evolução e necessidades.</li>
+                    </ul>
+                </div>
+                
+                <div class="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <h4 class="font-bold text-yellow-800 mb-2"><i class="fas fa-lightbulb mr-2"></i> Dica Motivacional</h4>
+                    <p class="text-yellow-700">"A jornada de mil milhas começa com um único passo." - Lao Tzu</p>
+                    <p class="text-yellow-700 mt-2">Você já deu o primeiro passo ao criar este cronograma. Mantenha o foco e celebre cada pequena vitória!</p>
+                </div>
+            `;
+            
+            document.getElementById('schedulePreview').innerHTML = scheduleHTML;
+            document.getElementById('planner-form').classList.add('hidden');
+            document.getElementById('schedulePreviewSection').classList.remove('hidden');
+            
+            // Scroll to preview
+            document.getElementById('schedulePreviewSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Helper function to format date
+        function formatDate(dateString) {
+            if(!dateString) return 'Não definida';
+            
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            return new Date(dateString).toLocaleDateString('pt-BR', options);
+        }
+        
+        // Download as PDF
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            
+            // Create a hidden div with optimized content for PDF
+            const pdfContent = document.createElement('div');
+            pdfContent.className = 'pdf-container';
+            pdfContent.style.width = '100%';
+            pdfContent.style.padding = '20px';
+            pdfContent.style.boxSizing = 'border-box';
+            pdfContent.style.position = 'absolute';
+            pdfContent.style.left = '-9999px';
+            
+            // Get the schedule data
+            const userName = document.getElementById('userName').value;
+            const studyDays = document.getElementById('studyDays').value;
+            const dailyHours = document.getElementById('dailyHours').value;
+            const startDate = document.getElementById('startDate').value;
+            const totalWeeklyHours = parseInt(studyDays) * parseInt(dailyHours);
+            
+            // Count subjects by priority
+            const priorityCounts = {
+                high: subjects.filter(s => s.priority === 'high').length,
+                medium: subjects.filter(s => s.priority === 'medium').length,
+                low: subjects.filter(s => s.priority === 'low').length
+            };
+            
+            // Build PDF content
+            pdfContent.innerHTML = `
+                <div class="pdf-header">
+                    <h1 style="font-size: 22px; color: #7c3aed; margin-bottom: 10px;">Cronograma de Estudos - ${userName}</h1>
+                    <p style="font-size: 14px; color: #555; margin-bottom: 5px;">Data de início: ${formatDate(startDate)}</p>
+                    <p style="font-size: 14px; color: #555; margin-bottom: 5px;">Dias por semana: ${studyDays} | Horas por dia: ${dailyHours}</p>
+                    <p style="font-size: 14px; color: #555; margin-bottom: 5px;">Total de horas semanais: ${totalWeeklyHours}h</p>
+                </div>
+                
+                <div class="pdf-section">
+                    <h2 style="font-size: 18px; color: #7c3aed; margin-bottom: 10px;">Tópicos de Estudo</h2>
+                    <table class="pdf-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding: 8px; background-color: #f3e8ff;">Tópico</th>
+                                <th style="text-align: left; padding: 8px; background-color: #f3e8ff;">Prioridade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${subjects.map(subject => `
+                                <tr>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">${subject.name}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #ddd; ${
+                                        subject.priority === 'high' ? 'background-color: #fee2e2; color: #b91c1c;' : 
+                                        subject.priority === 'medium' ? 'background-color: #fef3c7; color: #92400e;' : 
+                                        'background-color: #dcfce7; color: #166534;'
+                                    }">
+                                        ${subject.priority === 'high' ? 'Alta' : subject.priority === 'medium' ? 'Média' : 'Baixa'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div style="margin-top: 15px; background-color: #f3e8ff; padding: 10px; border-radius: 5px;">
+                        <p style="font-weight: bold; margin-bottom: 5px;">Distribuição por Prioridade</p>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1; background-color: #fee2e2; color: #b91c1c; padding: 5px; text-align: center; border-radius: 3px;">Alta: ${priorityCounts.high}</div>
+                            <div style="flex: 1; background-color: #fef3c7; color: #92400e; padding: 5px; text-align: center; border-radius: 3px;">Média: ${priorityCounts.medium}</div>
+                            <div style="flex: 1; background-color: #dcfce7; color: #166534; padding: 5px; text-align: center; border-radius: 3px;">Baixa: ${priorityCounts.low}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pdf-section">
+                    <h2 style="font-size: 18px; color: #7c3aed; margin-bottom: 10px;">Rotina Semanal</h2>
+                    <table class="pdf-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding: 8px; background-color: #f3e8ff;">Dia</th>
+                                <th style="text-align: left; padding: 8px; background-color: #f3e8ff;">Horário</th>
+                                <th style="text-align: left; padding: 8px; background-color: #f3e8ff;">Tópico</th>
+                                <th style="text-align: left; padding: 8px; background-color: #f3e8ff;">Duração</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${generateScheduleRowsForPDF()}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pdf-tip-box">
+                    <h3 style="font-size: 16px; color: #7c3aed; margin-bottom: 8px;">Dicas para seu cronograma</h3>
+                    <ul style="padding-left: 20px; margin-top: 5px;">
+                        <li style="margin-bottom: 5px;">Revise o conteúdo estudado no dia seguinte antes de começar novos tópicos.</li>
+                        <li style="margin-bottom: 5px;">Faça pausas de 5 minutos a cada 25 minutos de estudo (técnica Pomodoro).</li>
+                        <li style="margin-bottom: 5px;">Reserve um dia da semana apenas para revisão (recomendamos o domingo).</li>
+                        <li>Adapte o cronograma conforme sua evolução e necessidades.</li>
+                    </ul>
+                </div>
+                
+                <div class="pdf-motivational">
+                    <h3 style="font-size: 16px; color: #92400e; margin-bottom: 8px;">Dica Motivacional</h3>
+                    <p style="font-style: italic; margin-bottom: 5px;">"A jornada de mil milhas começa com um único passo." - Lao Tzu</p>
+                    <p>Você já deu o primeiro passo ao criar este cronograma. Mantenha o foco e celebre cada pequena vitória!</p>
+                </div>
+            `;
+            
+            document.body.appendChild(pdfContent);
+            
+            // Generate PDF from the hidden div
+            html2canvas(pdfContent, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = doc.internal.pageSize.getWidth() - 40;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                doc.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+                doc.save(`Cronograma_StudyFlow_${userName}.pdf`);
+                
+                // Remove the temporary div
+                document.body.removeChild(pdfContent);
+            });
+        }
+        
+        function generateScheduleRowsForPDF() {
+            const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+            const totalDays = parseInt(document.getElementById('studyDays').value);
+            const dailyHours = parseInt(document.getElementById('dailyHours').value);
+            let subjectIndex = 0;
+            let rows = '';
+            
+            for(let day = 0; day < totalDays; day++) {
+                const dayName = days[day];
+                let timeIndex = 0;
+                
+                // Distribute study hours across selected times
+                for(let hour = 0; hour < selectedTimes.length; hour++) {
+                    const time = selectedTimes[hour];
+                    const startHour = parseInt(time);
+                    const endHour = startHour + 1;
+                    const timeSlot = `${startHour.toString().padStart(2, '0')}:00 - ${endHour.toString().padStart(2, '0')}:00`;
+                    
+                    const currentSubject = subjects[subjectIndex % subjects.length];
+                    const priorityColor = 
+                        currentSubject.priority === 'high' ? 'background-color: #fee2e2; color: #b91c1c;' : 
+                        currentSubject.priority === 'medium' ? 'background-color: #fef3c7; color: #92400e;' : 
+                        'background-color: #dcfce7; color: #166534;';
+                    
+                    rows += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${dayName}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${timeSlot}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd; ${priorityColor}">${currentSubject.name}</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ddd;">1 hora</td>
+                        </tr>
+                    `;
+                    
+                    subjectIndex++;
+                    timeIndex++;
+                    
+                    // Break if we've allocated all daily hours
+                    if(timeIndex >= dailyHours) break;
+                }
+            }
+            
+            return rows;
+        }
+        
+        // Reset form
+        function resetForm() {
+            // Reset form fields
+            document.getElementById('userName').value = '';
+            document.getElementById('studyDays').value = '5';
+            document.getElementById('dailyHours').value = '1';
+            document.getElementById('startDate').value = '';
+            
+            // Reset time selection
+            selectedTimes = [];
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            
+            // Reset subjects
+            subjects = [];
+            document.getElementById('subjectsList').innerHTML = '';
+            document.getElementById('studyTips').classList.add('hidden');
+            
+            // Show first step and hide others
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.add('hidden');
+            document.getElementById('planner-form').classList.remove('hidden');
+            document.getElementById('schedulePreviewSection').classList.add('hidden');
+            
+            // Scroll to form
+            document.getElementById('planner-form').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Scroll to form
+        function scrollToForm() {
+            document.getElementById('planner-form').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Set default start date to today
+        window.onload = function() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yyyy = today.getFullYear();
+            document.getElementById('startDate').value = `${yyyy}-${mm}-${dd}`;
+        };
+    </script>
+</body>
+</html>
